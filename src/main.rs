@@ -1,27 +1,21 @@
-use std::io;
-use std::io::Write;
+#[derive(Debug)]
+struct Rectangle {
+    width: i32,
+    height: i32,
+}
 
+fn area(r: &Rectangle) -> i32 {
+    r.width * r.height
+}
 fn main() {
-    let mut n: u32 = 1;
-    let mut divisible_by_3_or_5: bool;
-    loop {
-        divisible_by_3_or_5 = false;
-        if n % 3 == 0 {
-            print!("fizz");
-            divisible_by_3_or_5 = true;
-        }
-        if n % 5 == 0 {
-            print!("buzz");
-            divisible_by_3_or_5 = true;
-        }
-        if divisible_by_3_or_5 == false {
-            print!("{n}");
-        }
-        print!("\n");
-        n = n + 1;
-        if n == 20 {
-            break;
-        }
-    }
-    io::stdout().flush().unwrap()
+    let width = 30;
+    let height = 50;
+    let scale = 2;
+    let r = Rectangle {
+        width: dbg!(width * scale),
+        height,
+    };
+
+    println!("The area of the rectangle is {}", area(&r));
+    dbg!(r);
 }
