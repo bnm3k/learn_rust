@@ -1,19 +1,36 @@
-use std::fmt;
+#[derive(Debug)]
+struct Point {
+    x: f32,
+    y: f32,
+}
 
-struct Matrix(f32, f32, f32, f32);
+#[derive(Debug)]
+struct Rectangle {
+    top_left: Point,
+    bottom_right: Point,
+}
 
-impl fmt::Display for Matrix {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "( {} {} )\n( {} {} )", self.0, self.1, self.2, self.3)
+fn rect_area(r: Rectangle) -> f32 {
+    let Rectangle {
+        top_left: Point { x: sx, y: by },
+        bottom_right: Point { x: bx, y: sy },
+    } = r;
+    (bx - sx) * (by - sy)
+}
+
+fn square(top_left: Point, length: f32) -> Rectangle {
+    let Point { x: sx, y: by } = top_left;
+    Rectangle {
+        top_left: top_left,
+        bottom_right: Point {
+            x: sx + length,
+            y: by - length,
+        },
     }
 }
 
-fn transpose(m: Matrix) -> Matrix {
-    Matrix(m.0, m.2, m.1, m.3)
-}
-
 fn main() {
-    let matrix = Matrix(1.1, 1.2, 2.1, 2.2);
-    println!("Matrix:\n{}", matrix);
-    println!("Transpose:\n{}", transpose(matrix));
+    let r = square(Point { x: 1.0, y: 9.0 }, 8.0);
+    println!("{:?}", r);
+    println!("area={}", rect_area(r));
 }
