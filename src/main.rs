@@ -1,22 +1,22 @@
 use std::fmt;
 
-#[derive(Debug)]
-struct Complex {
-    real: f64,
-    imag: f64,
-}
+struct List(Vec<i32>);
 
-impl fmt::Display for Complex {
+impl fmt::Display for List {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} + {}i", self.real, self.imag)
+        let vec = &self.0;
+        write!(f, "[")?;
+        for (i, n) in vec.iter().enumerate() {
+            if i != 0 {
+                write!(f, ", ")?;
+            }
+            write!(f, "{i}: {n}")?;
+        }
+        write!(f, "]")
     }
 }
 
 fn main() {
-    let c1 = Complex {
-        real: 3.3,
-        imag: 7.2,
-    };
-    println!("Display: {}", c1);
-    println!("Debug: {:?}", c1);
+    let l = List(vec![10, 20, 30]);
+    println!("{}", l);
 }
