@@ -20,6 +20,10 @@ struct File {
     state: FileState,
 }
 
+trait Read {
+    fn read(self: &Self, save_to: &mut Vec<u8>) -> Result<usize, String>;
+}
+
 impl File {
     fn new(name: &str) -> File {
         File {
@@ -35,16 +39,6 @@ impl File {
         f
     }
 
-    fn read(&self, save_to: &mut Vec<u8>) -> Result<usize, String> {
-        if self.state != FileState::Open {
-            return Err(String::from("File must be open for reading"));
-        }
-        let mut tmp = self.data.clone();
-        let read_length = tmp.len();
-        save_to.reserve(read_length);
-        save_to.append(&mut tmp);
-        Ok(read_length)
-    }
     fn open(mut self) -> Result<File, String> {
         if error_occurs_one_in(3) {
             let err_msg = String::from("Permission denied");
@@ -60,6 +54,19 @@ impl File {
         }
         self.state = FileState::Closed;
         Ok(self)
+    }
+}
+
+impl Read for File {
+    fn read(&self, save_to: &mut Vec<u8>) -> Result<usize, String> {
+        if self.state != FileState::Open {
+            return Err(String::from("File must be open for reading"));
+        }
+        let mut tmp = self.data.clone();
+        let read_length = tmp.len();
+        save_to.reserve(read_length);
+        save_to.append(&mut tmp);
+        Ok(read_length)
     }
 }
 
