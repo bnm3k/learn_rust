@@ -1,23 +1,24 @@
-#![allow(unused_variables)]
-#![allow(dead_code)]
-
+//! Simulating files one step a time.
 use rand::prelude::*;
 
+/// Returns true or false to simulate error occurence
 fn error_occurs_one_in(denominator: u32) -> bool {
     thread_rng().gen_ratio(1, denominator)
 }
 
 #[derive(Debug, PartialEq)]
-enum FileState {
+pub enum FileState {
     Open,
     Closed,
 }
 
+/// Represents a "file",
+/// which probably lives on a file system.
 #[derive(Debug)]
-struct File {
-    name: String,
+pub struct File {
+    pub name: String,
     data: Vec<u8>,
-    state: FileState,
+    pub state: FileState,
 }
 
 trait Read {
@@ -25,7 +26,8 @@ trait Read {
 }
 
 impl File {
-    fn new(name: &str) -> File {
+    /// New files are assumed to be empty, but a name is required.
+    pub fn new(name: &str) -> File {
         File {
             name: String::from(name),
             data: Vec::new(),
@@ -33,13 +35,25 @@ impl File {
         }
     }
 
-    fn new_with_data(name: &str, data: &Vec<u8>) -> File {
+    /// Creates new file and initiates it with the given data.
+    pub fn new_with_data(name: &str, data: &Vec<u8>) -> File {
         let mut f = File::new(name);
         f.data = data.clone();
         f
     }
 
-    fn open(mut self) -> Result<File, String> {
+    /// returns the file's length in bytes
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
+    /// Returns the file's name.
+    pub fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    /// Opens file for reading
+    pub fn open(mut self) -> Result<File, String> {
         if error_occurs_one_in(3) {
             let err_msg = String::from("Permission denied");
             return Err(err_msg);
@@ -47,7 +61,9 @@ impl File {
         self.state = FileState::Open;
         Ok(self)
     }
-    fn close(mut self) -> Result<File, String> {
+
+    /// Closes files. Reading is disabled on closing.
+    pub fn close(mut self) -> Result<File, String> {
         if error_occurs_one_in(3) {
             let err_msg = String::from("Interrupted by signal");
             return Err(err_msg);
