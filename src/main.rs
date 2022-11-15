@@ -20,8 +20,6 @@ struct File {
     state: FileState,
 }
 
-static mut ERROR: i32 = 0;
-
 impl File {
     fn new(name: &str) -> File {
         File {
