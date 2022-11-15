@@ -7,10 +7,17 @@ fn error_occurs_one_in(denominator: u32) -> bool {
     thread_rng().gen_ratio(1, denominator)
 }
 
+#[derive(Debug, PartialEq)]
+enum FileState {
+    Open,
+    Closed,
+}
+
 #[derive(Debug)]
 struct File {
     name: String,
     data: Vec<u8>,
+    state: FileState,
 }
 
 static mut ERROR: i32 = 0;
@@ -20,6 +27,7 @@ impl File {
         File {
             name: String::from(name),
             data: Vec::new(),
+            state: FileState::Closed,
         }
     }
 
@@ -30,24 +38,29 @@ impl File {
     }
 
     fn read(&self, save_to: &mut Vec<u8>) -> Result<usize, String> {
+        if self.state != FileState::Open {
+            return Err(String::from("File must be open for reading"));
+        }
         let mut tmp = self.data.clone();
         let read_length = tmp.len();
         save_to.reserve(read_length);
         save_to.append(&mut tmp);
         Ok(read_length)
     }
-    fn open(self) -> Result<File, String> {
+    fn open(mut self) -> Result<File, String> {
         if error_occurs_one_in(3) {
             let err_msg = String::from("Permission denied");
             return Err(err_msg);
         }
+        self.state = FileState::Open;
         Ok(self)
     }
-    fn close(self) -> Result<File, String> {
+    fn close(mut self) -> Result<File, String> {
         if error_occurs_one_in(3) {
             let err_msg = String::from("Interrupted by signal");
             return Err(err_msg);
         }
+        self.state = FileState::Closed;
         Ok(self)
     }
 }
