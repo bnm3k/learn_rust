@@ -1,30 +1,27 @@
-#[derive(Debug)]
-enum StatusMessage {
-    Ok,
-}
-
-type Message = String;
-
-fn check_status(sat: &CubeSat) -> StatusMessage {
-    StatusMessage::Ok
-}
-
-#[derive(Debug)]
+#[derive(Debug, Copy)]
 struct CubeSat {
     id: u64,
-    mailbox: Mailbox,
 }
 
 impl CubeSat {
     fn new(id: u64) -> CubeSat {
-        CubeSat {
-            id,
-            mailbox: Mailbox { messages: vec![] },
-        }
+        CubeSat { id }
     }
-    fn recv(&mut self) -> Option<Message> {
-        self.mailbox.messages.pop()
+    fn recv(self, mailbox: &mut Mailbox) -> Option<Message> {
+        mailbox.deliver(&self)
     }
+}
+
+impl Clone for CubeSat {
+    fn clone(&self) -> Self {
+        CubeSat { id: self.id }
+    }
+}
+
+#[derive(Debug)]
+struct Message {
+    to: u64,
+    content: String,
 }
 
 #[derive(Debug)]
@@ -32,21 +29,62 @@ struct Mailbox {
     messages: Vec<Message>,
 }
 
+impl Mailbox {
+    fn post(&mut self, msg: Message) {
+        self.messages.push(msg)
+    }
+
+    fn deliver(&mut self, recipient: &CubeSat) -> Option<Message> {
+        for i in 0..self.messages.len() {
+            if self.messages[i].to == recipient.id {
+                let msg = self.messages.remove(i);
+                return Some(msg);
+            }
+        }
+        None
+    }
+}
+
 struct GroundStation;
 
 impl GroundStation {
-    fn send(&self, to: &mut CubeSat, msg: Message) {
-        to.mailbox.messages.push(msg)
+    fn connect(&self, sat_id: u64) -> CubeSat {
+        CubeSat::new(sat_id)
     }
+
+    fn send(mailbox: &mut Mailbox, msg: Message) {
+        mailbox.post(msg);
+    }
+}
+
+fn fetch_sat_ids() -> Vec<u64> {
+    vec![1, 2, 3]
 }
 
 fn main() {
     let base = GroundStation {};
-    let mut sat_a = CubeSat::new(0);
-    base.send(&mut sat_a, Message::from("ping"));
-    println!("sat_a: {:?}", sat_a);
+    let sat_ids = fetch_sat_ids();
+    let mut mailbox = Mailbox { messages: vec![] };
 
-    let msg = sat_a.recv();
-    println!("sat_a: {:?}", sat_a);
-    println!("msg: {:?}", msg);
+    // send messages to sats
+    for sat_id in &sat_ids {
+        let message = Message {
+            to: *sat_id,
+            content: String::from("Hello there"),
+        };
+        GroundStation::send(&mut mailbox, message);
+    }
+
+    // receive messages
+    for sat_id in &sat_ids {
+        let sat = base.connect(*sat_id);
+        if let Some(msg) = sat.recv(&mut mailbox) {
+            println!("{:?} received {}", sat, msg.content);
+        }
+        if let Some(msg) = sat.recv(&mut mailbox) {
+            println!("{:?} received {}", sat, msg.content);
+        } else {
+            println!("no message")
+        }
+    }
 }
