@@ -1,40 +1,63 @@
-// #![allow(dead_code)]
-// #![allow(unused_imports)]
-// #![allow(unused_variables)]
+#![allow(dead_code)]
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+use std::fmt::Debug;
 
-#[derive(Debug)]
-struct NumVal {
-    n: i32,
+trait Animal {
+    fn new(name: &'static str) -> Self;
+    fn name(&self) -> &'static str;
+    fn noise(&self) -> &'static str;
+
+    fn talk(&self) {
+        println!("{} says {}", self.name(), self.noise());
+    }
 }
 
-fn create_box(n: i32) -> Box<NumVal> {
-    Box::new(NumVal { n })
+struct Sheep {
+    naked: bool,
+    name: &'static str,
 }
 
-fn mut_box(mut b: Box<NumVal>, new_val: i32) -> Box<NumVal> {
-    *b = NumVal { n: new_val };
-    b
+impl Animal for Sheep {
+    fn new(name: &'static str) -> Sheep {
+        Sheep {
+            naked: false,
+            name: name,
+        }
+    }
+    fn name(&self) -> &'static str {
+        self.name
+    }
+    fn noise(&self) -> &'static str {
+        "baaah"
+    }
 }
 
-fn mut_ref_box(b: &mut Box<NumVal>, new_val: i32) {
-    b.n = new_val
+struct Donkey {}
+
+trait NoisyAnimal {
+    fn noise(&self) -> &'static str;
 }
 
-fn destroy_box(_: Box<NumVal>) {}
+impl NoisyAnimal for Donkey {
+    fn noise(&self) -> &'static str {
+        "neight"
+    }
+}
+fn get_noise_animal() -> Box<dyn NoisyAnimal> {
+    Box::new(Donkey {})
+}
+
+fn get_animal(name: &'static str) -> impl Animal {
+    let s = Sheep::new(name);
+    return s;
+}
+
+fn use_animal(a: impl Animal) {
+    println!("{} says {}", a.name(), a.noise());
+}
 
 fn main() {
-    // allocate on heap
-    let n1 = create_box(100);
-    println!("n1={:?}", n1);
-
-    // take ownership
-    let n1 = mut_box(n1, 200);
-    println!("n1={:?}", n1);
-
-    // borrow as mutable
-    let mut n1 = n1;
-    mut_ref_box(&mut n1, 300);
-    println!("n1={:?}", n1);
-
-    destroy_box(n1);
+    let s = Sheep::new("dolly");
+    use_animal(get_animal("doll"));
 }
