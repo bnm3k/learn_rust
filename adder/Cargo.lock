@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "rectangle"
+name = "adder"
 version = "0.1.0"
