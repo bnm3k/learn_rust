@@ -2,6 +2,11 @@ use std::env;
 use std::error::Error;
 use std::fs;
 
+/// Holds configuration for running minigrep
+/// Fields:
+/// - query: pattern to use to get lines that match
+/// - file_path: path to text file
+/// - ignore_case: whether to carry out a case-insensitive match or not
 pub struct Config {
     query: String,
     file_path: String,
@@ -9,6 +14,7 @@ pub struct Config {
 }
 
 impl Config {
+    /// Builds Config from given args
     pub fn build(mut args: impl Iterator<Item = String>) -> Result<Config, &'static str> {
         // ignore binary name
         args.next();
