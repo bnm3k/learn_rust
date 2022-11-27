@@ -1,13 +1,15 @@
+use std::cell::RefCell;
 use std::rc::Rc;
 
 enum List {
-    Cons(i32, Rc<List>),
+    Cons(Rc<RefCell<i32>>, Rc<List>),
     Nil,
 }
 
 fn map(list: &List) {
     match list {
-        Cons(n, next) => {
+        Cons(r, next) => {
+            let n = r.borrow();
             print!("{} -> ", n);
             map(next);
         }
@@ -51,6 +53,19 @@ fn hello(name: &str) {
     println!("Hello, {name}");
 }
 
+fn main() {
+    let tail = Rc::new(Nil);
+    let node = |num, next| Cons(Rc::new(RefCell::new(num)), next);
+    let list = node(6, Rc::new(node(5, tail)));
+    map(&list);
+    let b = Box::new(5);
+    print_num(&b);
+    let mb = MyBox::new(6);
+    print_num(&mb);
+    assert_eq!(5, *b);
+    hello(&(MyBox::new(String::from("BNM"))));
+}
+
 pub trait Messenger {
     fn send(&self, msg: &str);
 }
@@ -77,29 +92,50 @@ where
 
         let percentage_of_max = self.value as f64 / self.max as f64;
 
-        if percentage_of_max >= 1.0 {
-            self.messenger.send("Error: You are over your quota!");
+        let msg = if percentage_of_max >= 1.0 {
+            Some("Error: You are over your quota!")
         } else if percentage_of_max >= 0.9 {
-            self.messenger
-                .send("Urgent warning: You've used up over 90% of your quota!");
+            Some("Urgent warning: You've used up over 90% of your quota!")
         } else if percentage_of_max >= 0.75 {
-            self.messenger
-                .send("Warning: You've used up over 75% of your quota!");
+            Some("Warning: You've used up over 75% of your quota!")
+        } else {
+            None
+        };
+
+        if let Some(msg_content) = msg {
+            self.messenger.send(msg_content)
         }
     }
 }
 
-fn main() {
-    return;
-    let a = Rc::new(Cons(10, Rc::new(Cons(20, Rc::new(Cons(30, Rc::new(Nil)))))));
-    let b = Cons(3, Rc::clone(&a));
-    let c = Cons(4, Rc::clone(&a));
-    map(&b);
-    map(&c);
-    let b = Box::new(5);
-    print_num(&b);
-    let mb = MyBox::new(6);
-    print_num(&mb);
-    assert_eq!(5, *b);
-    hello(&(MyBox::new(String::from("BNM"))));
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::RefCell;
+
+    struct MockMessenger {
+        sent_messages: RefCell<Vec<String>>,
+    }
+
+    impl MockMessenger {
+        fn new() -> MockMessenger {
+            MockMessenger {
+                sent_messages: RefCell::new(vec![]),
+            }
+        }
+    }
+
+    impl Messenger for MockMessenger {
+        fn send(&self, message: &str) {
+            self.sent_messages.borrow_mut().push(String::from(message));
+        }
+    }
+
+    #[test]
+    fn it_sends_an_over_75_percent_warning_message() {
+        let mock_messenger = MockMessenger::new();
+        let mut limit_tracker = LimitTracker::new(&mock_messenger, 100);
+        limit_tracker.set_value(80);
+        assert_eq!(mock_messenger.sent_messages.borrow().len(), 1);
+    }
 }
