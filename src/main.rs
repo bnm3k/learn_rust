@@ -1,42 +1,44 @@
-use std::sync::{mpsc, Arc, Mutex};
-use std::thread;
-use std::time::Duration;
+pub trait Draw {
+    fn draw(&self);
+}
 
-fn main() {
-    let mut handles = vec![];
-    let (tx, rx) = mpsc::channel();
-    let num_producers = 10;
-    let counter = Arc::new(Mutex::new(0));
+pub struct Screen {
+    pub components: Vec<Box<dyn Draw>>,
+}
 
-    for id in 1..=num_producers {
-        let tx = tx.clone();
-        let counter = Arc::clone(&counter);
-        let handle = thread::spawn(move || {
-            thread::sleep(Duration::from_millis(1));
-            let count = {
-                let mut num = counter.lock().unwrap();
-                *num += 1;
-                num
-            };
-            let id_str = format!("p-{} -> {}", id, count);
-            if let Err(e) = tx.send(id_str) {
-                eprintln!("send error on producer {id}: {e}");
-            }
-        });
-        handles.push(handle);
-    }
-
-    std::mem::drop(tx);
-
-    let consumer = thread::spawn(move || {
-        for msg in rx {
-            println!("{}", msg);
+impl Screen {
+    pub fn run(&self) {
+        for component in self.components.iter() {
+            component.draw();
         }
-    });
-
-    for handle in handles {
-        handle.join().unwrap();
     }
 
-    consumer.join().unwrap();
+    pub fn add_component(&mut self, component: Box<(dyn Draw)>) {
+        self.components.push(component)
+    }
+}
+
+pub struct Button {}
+
+impl Draw for Button {
+    fn draw(&self) {
+        println!("Drawing button");
+    }
+}
+
+pub struct SelectBox {}
+
+impl Draw for SelectBox {
+    fn draw(&self) {
+        println!("Drawing select box");
+    }
+}
+fn main() {
+    let screen = {
+        let mut screen = Screen { components: vec![] };
+        screen.add_component(Box::new(Button {}));
+        screen.add_component(Box::new(SelectBox {}));
+        screen
+    };
+    screen.run();
 }
