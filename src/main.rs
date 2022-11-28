@@ -1,44 +1,27 @@
-pub trait Draw {
-    fn draw(&self);
-}
+use rust_book::Post;
 
-pub struct Screen {
-    pub components: Vec<Box<dyn Draw>>,
-}
-
-impl Screen {
-    pub fn run(&self) {
-        for component in self.components.iter() {
-            component.draw();
-        }
-    }
-
-    pub fn add_component(&mut self, component: Box<(dyn Draw)>) {
-        self.components.push(component)
-    }
-}
-
-pub struct Button {}
-
-impl Draw for Button {
-    fn draw(&self) {
-        println!("Drawing button");
-    }
-}
-
-pub struct SelectBox {}
-
-impl Draw for SelectBox {
-    fn draw(&self) {
-        println!("Drawing select box");
-    }
-}
 fn main() {
-    let screen = {
-        let mut screen = Screen { components: vec![] };
-        screen.add_component(Box::new(Button {}));
-        screen.add_component(Box::new(SelectBox {}));
-        screen
-    };
-    screen.run();
+    let mut post = Post::new();
+
+    // draft
+    post.add_text("I ate a salad");
+    assert_eq!("", post.content());
+
+    // review
+    post.request_review();
+    post.add_text(" for lunch today");
+    assert_eq!("", post.content());
+    post.approve(); // first reviewer approves
+    post.reject(); // second reviewer rejects, back to draft
+
+    // draft 2.0 implement changes
+    post.add_text(" for dinner today");
+
+    // review
+    post.request_review();
+    post.approve();
+    post.approve();
+
+    // published
+    assert_eq!("I ate a salad for dinner today", post.content());
 }
