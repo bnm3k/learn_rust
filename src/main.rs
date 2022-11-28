@@ -1,27 +1,35 @@
-use rust_book::Post;
+use std::{
+    fs,
+    io::{prelude::*, BufReader},
+    net::{TcpListener, TcpStream},
+};
 
 fn main() {
-    let mut post = Post::new();
+    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
 
-    // draft
-    post.add_text("I ate a salad");
-    assert_eq!("", post.content());
+    for stream in listener.incoming() {
+        let stream = stream.unwrap();
+        handle_conection(stream);
+    }
+}
 
-    // review
-    post.request_review();
-    post.add_text(" for lunch today");
-    assert_eq!("", post.content());
-    post.approve(); // first reviewer approves
-    post.reject(); // second reviewer rejects, back to draft
+fn handle_conection(mut stream: TcpStream) {
+    let buf_reader = BufReader::new(&mut stream);
+    let http_request: Vec<_> = buf_reader
+        .lines()
+        .map(|result| result.unwrap())
+        .take_while(|line| !line.is_empty())
+        .collect();
 
-    // draft 2.0 implement changes
-    post.add_text(" for dinner today");
+    let request_line = &http_request[0];
+    let (status_line, filename) = if request_line == "GET / HTTP/1.1" {
+        ("HTTP/1.1 200 OK", "static/hello.html")
+    } else {
+        ("HTTP/1.1 404 NOT FOUND", "static/404.html")
+    };
 
-    // review
-    post.request_review();
-    post.approve();
-    post.approve();
-
-    // published
-    assert_eq!("I ate a salad for dinner today", post.content());
+    let contents = fs::read_to_string(filename).unwrap();
+    let length = contents.len();
+    let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
+    stream.write_all(response.as_bytes()).unwrap();
 }
