@@ -1,47 +1,90 @@
-use std::{
-    fs,
-    io::{prelude::*, BufReader},
-    net::{TcpListener, TcpStream},
-    thread,
-    time::Duration,
-};
-
-use hello::ThreadPool;
-
-fn main() {
-    let listener = TcpListener::bind("127.0.0.1:7878").unwrap();
-    let pool = ThreadPool::new(4);
-
-    for stream in listener.incoming().take(2) {
-        let stream = stream.unwrap();
-        pool.execute(|| {
-            handle_conection(stream);
-        });
-    }
-
-    println!("Shutting down");
+#[derive(Debug, Copy)]
+struct CubeSat {
+    id: u64,
 }
 
-fn handle_conection(mut stream: TcpStream) {
-    let buf_reader = BufReader::new(&mut stream);
-    let http_request: Vec<_> = buf_reader
-        .lines()
-        .map(|result| result.unwrap())
-        .take_while(|line| !line.is_empty())
-        .collect();
+impl CubeSat {
+    fn new(id: u64) -> CubeSat {
+        CubeSat { id }
+    }
+    fn recv(self, mailbox: &mut Mailbox) -> Option<Message> {
+        mailbox.deliver(&self)
+    }
+}
 
-    let request_line = &http_request[0];
-    let (status_line, filename) = match request_line.as_str() {
-        "GET / HTTP/1.1" => ("HTTP/1.1 200 OK", "static/hello.html"),
-        "GET /sleep HTTP/1.1" => {
-            thread::sleep(Duration::from_secs(5));
-            ("HTTP/1.1 200 OK", "static/hello.html")
+impl Clone for CubeSat {
+    fn clone(&self) -> Self {
+        CubeSat { id: self.id }
+    }
+}
+
+#[derive(Debug)]
+struct Message {
+    to: u64,
+    content: String,
+}
+
+#[derive(Debug)]
+struct Mailbox {
+    messages: Vec<Message>,
+}
+
+impl Mailbox {
+    fn post(&mut self, msg: Message) {
+        self.messages.push(msg)
+    }
+
+    fn deliver(&mut self, recipient: &CubeSat) -> Option<Message> {
+        for i in 0..self.messages.len() {
+            if self.messages[i].to == recipient.id {
+                let msg = self.messages.remove(i);
+                return Some(msg);
+            }
         }
-        _ => ("HTTP/1.1 404 NOT FOUND", "static/404.html"),
-    };
+        None
+    }
+}
 
-    let contents = fs::read_to_string(filename).unwrap();
-    let length = contents.len();
-    let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
-    stream.write_all(response.as_bytes()).unwrap();
+struct GroundStation;
+
+impl GroundStation {
+    fn connect(&self, sat_id: u64) -> CubeSat {
+        CubeSat::new(sat_id)
+    }
+
+    fn send(mailbox: &mut Mailbox, msg: Message) {
+        mailbox.post(msg);
+    }
+}
+
+fn fetch_sat_ids() -> Vec<u64> {
+    vec![1, 2, 3]
+}
+
+fn main() {
+    let base = GroundStation {};
+    let sat_ids = fetch_sat_ids();
+    let mut mailbox = Mailbox { messages: vec![] };
+
+    // send messages to sats
+    for sat_id in &sat_ids {
+        let message = Message {
+            to: *sat_id,
+            content: String::from("Hello there"),
+        };
+        GroundStation::send(&mut mailbox, message);
+    }
+
+    // receive messages
+    for sat_id in &sat_ids {
+        let sat = base.connect(*sat_id);
+        if let Some(msg) = sat.recv(&mut mailbox) {
+            println!("{:?} received {}", sat, msg.content);
+        }
+        if let Some(msg) = sat.recv(&mut mailbox) {
+            println!("{:?} received {}", sat, msg.content);
+        } else {
+            println!("no message")
+        }
+    }
 }
